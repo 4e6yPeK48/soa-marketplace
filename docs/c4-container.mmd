@@ -1,0 +1,109 @@
+---
+config:
+  layout: elk
+  flowchart:
+    curve: linear
+    nodeSpacing: 35
+    rankSpacing: 55
+  elk:
+    preset: modelOrder
+    nodePlacementStrategy: LINEAR_SEGMENTS
+    considerModelOrder: PREFER_NODES
+    straightenEdges: true
+    lineHops: arc
+    mergeEdges: false
+---
+
+flowchart TB
+
+    buyer["Покупатель<br/>[Person]"]
+    seller["Продавец<br/>[Person]"]
+    psp["Платёжный провайдер<br/>[External system]"]
+
+    subgraph marketplace["Маркетплейс [Software System]"]
+        direction TB
+
+        gateway["API Gateway<br/>[Container: HTTP API]"]
+
+        subgraph services["Доменные контейнеры"]
+            direction LR
+
+            subgraph d_users["Users"]
+                direction TB
+                users["HTTP API<br/>Пользователи, роли,<br/>предпочтения"]
+                usersdb[("Users DB")]
+                users -->|владеет| usersdb
+            end
+
+            subgraph d_catalog["Catalog"]
+                direction TB
+                catalog["Go / HTTP<br/>Товары, цены,<br/>доступность"]
+                catalogdb[("Catalog DB")]
+                catalog -->|владеет| catalogdb
+            end
+
+            subgraph d_feed["Feed"]
+                direction TB
+                feed["HTTP API<br/>Персональная лента"]
+                feeddb[("Feed DB")]
+                feed -->|владеет| feeddb
+            end
+
+            subgraph d_orders["Orders"]
+                direction TB
+                orders["HTTP API<br/>Заказы, статусы"]
+                ordersdb[("Orders DB")]
+                orders -->|владеет| ordersdb
+            end
+
+            subgraph d_payments["Payments"]
+                direction TB
+                payments["HTTP API<br/>Платежи"]
+                paymentsdb[("Payments DB")]
+                payments -->|владеет| paymentsdb
+            end
+
+            subgraph d_notifications["Notifications"]
+                direction TB
+                notifications["event consumer<br/>Уведомления"]
+                notificationsdb[("Notifications DB")]
+                notifications -->|владеет| notificationsdb
+            end
+        end
+
+        broker[("Брокер событий<br/>[Container: async messaging]<br/><br/>ProductChanged → Feed<br/>PreferencesChanged → Feed<br/>PaymentStatusChanged → Orders<br/>OrderStatusChanged → Notifications")]
+    end
+
+    %% External → system
+    buyer -->|HTTPS| gateway
+    seller -->|HTTPS| gateway
+
+    %% Gateway → domain APIs
+    gateway -->|HTTP/JSON| users
+    gateway -->|HTTP/JSON| catalog
+    gateway -->|HTTP/JSON| feed
+    gateway -->|HTTP/JSON| orders
+
+    %% Synchronous domain calls
+    orders -->|HTTP: цена и доступность| catalog
+    orders -->|HTTP: начать оплату| payments
+    payments -->|HTTPS: провести платёж| psp
+
+    %% Async
+    catalog -.->|ProductChanged| broker
+    broker -.->|ProductChanged| feed
+
+    %% Styling
+    classDef person fill:#084c61,color:#fff,stroke:#063845
+    classDef external fill:#f1f5f9,stroke:#475569,color:#0f172a
+    classDef gateway fill:#0f766e,color:#fff,stroke:#115e59
+    classDef service fill:#e0f2fe,stroke:#0369a1,color:#082f49
+    classDef data fill:#fef3c7,stroke:#b45309,color:#451a03
+    classDef broker fill:#f3e8ff,stroke:#7e22ce,color:#3b0764
+
+    class buyer,seller person
+    class psp external
+    class gateway gateway
+    class users,catalog,feed,orders,payments,notifications service
+    class usersdb,catalogdb,feeddb,ordersdb,paymentsdb,notificationsdb data
+    class broker broker
