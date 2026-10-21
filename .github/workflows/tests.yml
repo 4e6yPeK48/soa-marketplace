@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: catalog-service/go.mod
           cache-dependency-path: catalog-service/go.sum
@@ -53,7 +53,7 @@ jobs:
           docker --context "$DOCKER_CONTEXT" compose ps -a > artifacts/e2e/compose-ps.txt
       - name: Upload E2E results, reports, and diagnostics
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/e2e/
