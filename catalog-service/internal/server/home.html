@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketplace API</title>
+  <style>
+    body { margin: 0; padding: 2rem 1rem; background: #f4f6fa; color: #182234; font: 1rem/1.6 system-ui, sans-serif; }
+    main { max-width: 48rem; margin: auto; padding: 1.5rem; background: #fff; border: 1px solid #dbe3ef; border-radius: .75rem; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    h2 { margin-top: 2rem; font-size: 1.25rem; }
+    a { color: #1349a5; text-underline-offset: .2em; }
+    a:focus-visible, pre:focus-visible { outline: 3px solid #1349a5; outline-offset: 4px; }
+    nav ul { padding-left: 1.25rem; }
+    li { margin: .5rem 0; }
+    code { font-family: ui-monospace, monospace; }
+    pre { overflow-x: auto; padding: 1rem; background: #f4f6fa; border-radius: .5rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Marketplace API</h1>
+    <p>Каталог товаров, заказы и промокоды.</p>
+    <nav aria-label="Проверка сервиса и документация">
+      <ul>
+        <li><a href="/swagger/">Открыть Swagger UI</a> — авторизация и выполнение запросов прямо в браузере.</li>
+        <li><a href="/health">Проверить доступность сервиса</a> — ответ <code>ok</code> означает, что база данных доступна.</li>
+        <li><a href="/openapi.yaml" download>Скачать OpenAPI</a> — импортируйте файл в Postman или другой API-клиент.</li>
+      </ul>
+    </nav>
+    <h2>Первый запрос</h2>
+    <p>Откройте нужную ручку в Swagger UI и нажмите <strong>Try it out → Execute</strong>.</p>
+    <ol>
+      <li>Зарегистрируйтесь через <code>POST /auth/register</code>. Для покупателя выберите <code>USER</code>, для продавца — <code>SELLER</code>.</li>
+      <li>Передайте email и пароль в <code>POST /auth/login</code>.</li>
+      <li>Вставьте полученный <code>access_token</code> в <strong>Authorize</strong> без префикса <code>Bearer</code>. Swagger UI добавит заголовок к запросам.</li>
+    </ol>
+    <pre tabindex="0"><code>GET /products
+Authorization: Bearer &lt;access_token&gt;</code></pre>
+    <p>Access token действует 20 минут. Для обновления передайте <code>refresh_token</code> в <code>POST /auth/refresh</code>.</p>
+    <h2>Если запрос не прошёл</h2>
+    <ul>
+      <li><code>400</code> — проверьте поля, перечисленные в <code>details</code>.</li>
+      <li><code>401</code> — получите или обновите access token.</li>
+      <li><code>403</code> — операция недоступна вашей роли или заказ принадлежит другому пользователю.</li>
+      <li><code>404</code> — путь или запрошенная запись не найдены.</li>
+      <li><code>405</code> — выберите HTTP-метод из заголовка <code>Allow</code>.</li>
+      <li><code>429</code> — повторите запрос через время из заголовка <code>Retry-After</code>.</li>
+    </ul>
+  </main>
+</body>
+</html>

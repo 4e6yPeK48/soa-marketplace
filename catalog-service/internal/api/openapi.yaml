@@ -1,0 +1,1361 @@
+---
+openapi: 3.0.3
+info:
+  title: Marketplace API
+  version: 1.0.0
+  description: >-
+    Неизвестный маршрут возвращает 404 ROUTE_NOT_FOUND без авторизации.
+    Неподдерживаемый HTTP-метод возвращает 405 METHOD_NOT_ALLOWED с заголовком Allow.
+security:
+- bearerAuth: []
+paths:
+  "/auth/register":
+    post:
+      operationId: Register
+      description: >-
+        Регистрация USER или SELLER. Для входа используйте те же email и password в POST /auth/login.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '409':
+          description: EMAIL_ALREADY_EXISTS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RegisterRequest"
+  "/auth/login":
+    post:
+      operationId: Login
+      description: >-
+        Вход по email и password. Скопируйте access_token из ответа в Authorize без префикса Bearer; refresh_token для авторизации API не подходит.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TokenPair"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/LoginRequest"
+  "/auth/refresh":
+    post:
+      operationId: Refresh
+      description: >-
+        Передайте refresh_token из ответа входа для получения новой пары токенов. Новый access_token вставьте в Authorize без префикса Bearer.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TokenPair"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: REFRESH_TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RefreshRequest"
+  "/products":
+    post:
+      operationId: CreateProduct
+      description: SELLER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ProductResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ProductCreate"
+    get:
+      operationId: ListProducts
+      description: USER, SELLER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ProductList"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: category
+        in: query
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 100
+      - name: status
+        in: query
+        schema:
+          "$ref": "#/components/schemas/ProductStatus"
+  "/products/{id}":
+    get:
+      operationId: GetProduct
+      description: USER, SELLER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ProductResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: PRODUCT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    put:
+      operationId: UpdateProduct
+      description: Product owner SELLER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ProductResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: PRODUCT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ProductUpdate"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    delete:
+      operationId: DeleteProduct
+      description: 'Product owner SELLER or ADMIN. Soft deletion: status becomes ARCHIVED.'
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '204':
+          description: Success
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: PRODUCT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+  "/orders":
+    post:
+      operationId: CreateOrder
+      description: USER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OrderResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: PRODUCT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '409':
+          description: PRODUCT_INACTIVE, ORDER_HAS_ACTIVE, INSUFFICIENT_STOCK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: PROMO_CODE_INVALID, PROMO_CODE_MIN_AMOUNT
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '429':
+          headers:
+            Retry-After:
+              description: Время ожидания перед повтором запроса в секундах.
+              schema:
+                type: integer
+                minimum: 1
+          description: ORDER_LIMIT_EXCEEDED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/OrderCreate"
+  "/orders/{id}":
+    get:
+      operationId: GetOrder
+      description: Order owner USER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OrderResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED, ORDER_OWNERSHIP_VIOLATION
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: ORDER_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    put:
+      operationId: UpdateOrder
+      description: Order owner USER or ADMIN with access to any order.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OrderResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED, ORDER_OWNERSHIP_VIOLATION
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: ORDER_NOT_FOUND, PRODUCT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '409':
+          description: INVALID_STATE_TRANSITION, PRODUCT_INACTIVE, INSUFFICIENT_STOCK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: PROMO_CODE_INVALID, PROMO_CODE_MIN_AMOUNT
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '429':
+          headers:
+            Retry-After:
+              description: Время ожидания перед повтором запроса в секундах.
+              schema:
+                type: integer
+                minimum: 1
+          description: ORDER_LIMIT_EXCEEDED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/OrderUpdate"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+  "/orders/{id}/cancel":
+    post:
+      operationId: CancelOrder
+      description: Order owner USER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OrderResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED, ORDER_OWNERSHIP_VIOLATION
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: ORDER_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '409':
+          description: INVALID_STATE_TRANSITION
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+  "/orders/{id}/status":
+    post:
+      operationId: ChangeOrderStatus
+      description: ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OrderResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: ORDER_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '409':
+          description: INVALID_STATE_TRANSITION
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/OrderStatusUpdate"
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+  "/promo-codes":
+    post:
+      operationId: CreatePromoCode
+      description: SELLER or ADMIN.
+      responses:
+        '405':
+          "$ref": "#/components/responses/MethodNotAllowed"
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PromoCodeResponse"
+        '400':
+          description: VALIDATION_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: INTERNAL_ERROR
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: TOKEN_EXPIRED, TOKEN_INVALID
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: ACCESS_DENIED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/PromoCodeCreate"
+components:
+  responses:
+    MethodNotAllowed:
+      description: METHOD_NOT_ALLOWED — используйте метод из заголовка Allow.
+      headers:
+        Allow:
+          description: Допустимые HTTP-методы для этого пути.
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Role:
+      type: string
+      enum:
+      - USER
+      - SELLER
+      - ADMIN
+    ProductStatus:
+      type: string
+      enum:
+      - ACTIVE
+      - INACTIVE
+      - ARCHIVED
+    OrderStatus:
+      type: string
+      enum:
+      - CREATED
+      - PAYMENT_PENDING
+      - PAID
+      - SHIPPED
+      - COMPLETED
+      - CANCELED
+    DiscountType:
+      type: string
+      enum:
+      - PERCENTAGE
+      - FIXED_AMOUNT
+    ProductCreate:
+      type: object
+      example:
+        name: Кружка
+        description: Керамическая кружка
+        price: 199.99
+        stock: 10
+        category: Посуда
+        status: ACTIVE
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+          maxLength: 4000
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        stock:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        status:
+          "$ref": "#/components/schemas/ProductStatus"
+        seller_id:
+          type: integer
+          format: int64
+          minimum: 1
+      required:
+      - name
+      - price
+      - stock
+      - category
+      - status
+      additionalProperties: false
+    ProductUpdate:
+      type: object
+      example:
+        name: Кружка
+        description: Керамическая кружка
+        price: 249.99
+        stock: 8
+        category: Посуда
+        status: ACTIVE
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+          maxLength: 4000
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        stock:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        status:
+          "$ref": "#/components/schemas/ProductStatus"
+        seller_id:
+          type: integer
+          format: int64
+          minimum: 1
+      required:
+      - name
+      - price
+      - stock
+      - category
+      - status
+      additionalProperties: false
+    ProductResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+          maxLength: 4000
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        stock:
+          type: integer
+          format: int64
+          minimum: 0
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        status:
+          "$ref": "#/components/schemas/ProductStatus"
+        seller_id:
+          type: integer
+          format: int64
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - price
+      - stock
+      - category
+      - status
+      - seller_id
+      - created_at
+      - updated_at
+      additionalProperties: false
+    ProductList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ProductResponse"
+        totalElements:
+          type: integer
+          format: int64
+          minimum: 0
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+      required:
+      - items
+      - totalElements
+      - page
+      - size
+      additionalProperties: false
+    RegisterRequest:
+      type: object
+      example:
+        email: seller@example.test
+        password: Example-password-123
+        role: SELLER
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+        role:
+          type: string
+          enum:
+          - USER
+          - SELLER
+      required:
+      - email
+      - password
+      - role
+      additionalProperties: false
+    LoginRequest:
+      type: object
+      example:
+        email: seller@example.test
+        password: Example-password-123
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 1
+          maxLength: 72
+      required:
+      - email
+      - password
+      additionalProperties: false
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+      required:
+      - refresh_token
+      additionalProperties: false
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          enum:
+          - Bearer
+        expires_in:
+          type: integer
+          format: int32
+          minimum: 1
+      required:
+      - access_token
+      - refresh_token
+      - token_type
+      - expires_in
+      additionalProperties: false
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        email:
+          type: string
+          format: email
+        role:
+          "$ref": "#/components/schemas/Role"
+      required:
+      - id
+      - email
+      - role
+      additionalProperties: false
+    OrderItemInput:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          format: int64
+          minimum: 1
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 999
+      required:
+      - product_id
+      - quantity
+      additionalProperties: false
+    OrderCreate:
+      type: object
+      example:
+        items:
+        - product_id: 1
+          quantity: 1
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            "$ref": "#/components/schemas/OrderItemInput"
+          maxItems: 50
+        promo_code:
+          type: string
+          nullable: true
+          pattern: "^[A-Z0-9_]{4,20}$"
+      required:
+      - items
+      additionalProperties: false
+    OrderUpdate:
+      type: object
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            "$ref": "#/components/schemas/OrderItemInput"
+          maxItems: 50
+      required:
+      - items
+      additionalProperties: false
+    OrderItemResponse:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          format: int64
+          minimum: 1
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 999
+        price_at_order:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+      required:
+      - product_id
+      - quantity
+      - price_at_order
+      additionalProperties: false
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        status:
+          "$ref": "#/components/schemas/OrderStatus"
+        promo_code_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        total_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        discount_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        items:
+          type: array
+          items:
+            "$ref": "#/components/schemas/OrderItemResponse"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - user_id
+      - status
+      - promo_code_id
+      - total_amount
+      - discount_amount
+      - items
+      - created_at
+      - updated_at
+      additionalProperties: false
+    PromoCodeCreate:
+      type: object
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9_]{4,20}$"
+          minLength: 4
+          maxLength: 20
+        discount_type:
+          "$ref": "#/components/schemas/DiscountType"
+        discount_value:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        min_order_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        max_uses:
+          type: integer
+          format: int32
+          minimum: 1
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+          default: true
+      required:
+      - code
+      - discount_type
+      - discount_value
+      - min_order_amount
+      - max_uses
+      - valid_from
+      - valid_until
+      additionalProperties: false
+    PromoCodeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        code:
+          type: string
+          pattern: "^[A-Z0-9_]{4,20}$"
+          minLength: 4
+          maxLength: 20
+        discount_type:
+          "$ref": "#/components/schemas/DiscountType"
+        discount_value:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        min_order_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 9999999999.99
+          multipleOf: 0.01
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+        max_uses:
+          type: integer
+          format: int32
+          minimum: 1
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+          default: true
+        current_uses:
+          type: integer
+          format: int32
+          minimum: 0
+      required:
+      - id
+      - code
+      - discount_type
+      - discount_value
+      - min_order_amount
+      - max_uses
+      - valid_from
+      - valid_until
+      - active
+      - current_uses
+      additionalProperties: false
+    OrderStatusUpdate:
+      type: object
+      properties:
+        status:
+          "$ref": "#/components/schemas/OrderStatus"
+      required:
+      - status
+      additionalProperties: false
+    Error:
+      type: object
+      properties:
+        error_code:
+          type: string
+          enum:
+          - PRODUCT_NOT_FOUND
+          - PRODUCT_INACTIVE
+          - ORDER_NOT_FOUND
+          - ORDER_LIMIT_EXCEEDED
+          - ORDER_HAS_ACTIVE
+          - INVALID_STATE_TRANSITION
+          - INSUFFICIENT_STOCK
+          - PROMO_CODE_INVALID
+          - PROMO_CODE_MIN_AMOUNT
+          - ORDER_OWNERSHIP_VIOLATION
+          - VALIDATION_ERROR
+          - TOKEN_EXPIRED
+          - TOKEN_INVALID
+          - REFRESH_TOKEN_INVALID
+          - ACCESS_DENIED
+          - INTERNAL_ERROR
+          - EMAIL_ALREADY_EXISTS
+          - ROUTE_NOT_FOUND
+          - METHOD_NOT_ALLOWED
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+      required:
+      - error_code
+      - message
+      additionalProperties: false

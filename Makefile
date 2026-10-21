@@ -1,9 +1,31 @@
 DOCKER_CONTEXT := colima-distsys
 
-.PHONY: up down docker-setup
+.PHONY: up down docker-setup generate build test check e2e logs db
+
+generate:
+	cd catalog-service && go generate ./internal/api
+
+build: generate
+	cd catalog-service && go build -o catalog .
+
+test: generate
+	cd catalog-service && go test -race ./...
+
+check: test
+	cd catalog-service && go vet ./...
+	python3 -m unittest discover -s scripts -p 'test_*.py'
+
+e2e:
+	DOCKER_CONTEXT="$(DOCKER_CONTEXT)" python3 scripts/e2e.py
+
+logs:
+	docker --context "$(DOCKER_CONTEXT)" compose logs -f catalog
+
+db:
+	docker --context "$(DOCKER_CONTEXT)" compose exec postgres psql -U marketplace -d marketplace
 
 up: docker-setup
-	docker --context "$(DOCKER_CONTEXT)" compose up --build -d
+	docker --context "$(DOCKER_CONTEXT)" compose up --build -d --wait
 
 down:
 	docker --context "$(DOCKER_CONTEXT)" compose down

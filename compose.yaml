@@ -1,5 +1,49 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-marketplace-local-password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate:
+    build: ./db
+    platform: linux/amd64
+    command: migrate
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/marketplace
+      FLYWAY_USER: marketplace
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-marketplace-local-password}
+      FLYWAY_CONNECT_RETRIES: 30
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_FAIL_ON_MISSING_LOCATIONS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
   catalog:
     build: ./catalog-service
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${PORT:-8080}:8080"
+    environment:
+      DATABASE_URL: postgres://marketplace:${POSTGRES_PASSWORD:-marketplace-local-password}@postgres:5432/marketplace?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-local-homework-secret-change-before-sharing-32bytes}
+      ORDER_COOLDOWN_MINUTES: ${ORDER_COOLDOWN_MINUTES:-1}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.test}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-local-password}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres-data:
