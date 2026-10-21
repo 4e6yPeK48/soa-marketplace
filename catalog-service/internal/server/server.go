@@ -227,7 +227,8 @@ func (w *statusWriter) Write(body []byte) (int, error) {
 
 func (s *Server) logRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		started := time.Now().UTC()
+		// Keep monotonic time for durations; convert to UTC only for the timestamp.
+		started := time.Now()
 		requestID := uuid.NewString()
 		w.Header().Set("X-Request-Id", requestID)
 		recorder := &statusWriter{ResponseWriter: w}
@@ -247,7 +248,7 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 			if p.ID != 0 {
 				userID = p.ID
 			}
-			fields := []any{"request_id", requestID, "method", r.Method, "endpoint", r.URL.Path, "status_code", status, "duration_ms", float64(time.Since(started).Microseconds()) / 1000, "user_id", userID, "timestamp", started.Format(time.RFC3339Nano)}
+			fields := []any{"request_id", requestID, "method", r.Method, "endpoint", r.URL.Path, "status_code", status, "duration_ms", float64(time.Since(started).Microseconds()) / 1000, "user_id", userID, "timestamp", started.UTC().Format(time.RFC3339Nano)}
 			if mutating {
 				fields = append(fields, "request_body", requestBody)
 			}

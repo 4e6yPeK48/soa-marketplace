@@ -1,6 +1,8 @@
-DOCKER_CONTEXT := colima-distsys
+DOCKER_CONTEXT ?= colima-distsys
+E2E_ARTIFACTS_DIR ?= $(CURDIR)/artifacts/e2e
+E2E_GO_FLAGS ?= -v
 
-.PHONY: up down docker-setup generate build test check e2e logs db
+.PHONY: up down docker-setup generate build test check e2e e2e-report e2e-open logs db
 
 generate:
 	cd catalog-service && go generate ./internal/api
@@ -13,10 +15,15 @@ test: generate
 
 check: test
 	cd catalog-service && go vet ./...
-	python3 -m unittest discover -s scripts -p 'test_*.py'
 
-e2e:
-	DOCKER_CONTEXT="$(DOCKER_CONTEXT)" python3 scripts/e2e.py
+e2e: generate
+	cd catalog-service && DOCKER_CONTEXT="$(DOCKER_CONTEXT)" E2E_ARTIFACTS_DIR="$(abspath $(E2E_ARTIFACTS_DIR))" go test -tags=e2e -race -count=1 -timeout=5m $(E2E_GO_FLAGS) ./e2e
+
+e2e-report:
+	E2E_ARTIFACTS_DIR="$(abspath $(E2E_ARTIFACTS_DIR))" node scripts/e2e-report.mjs generate
+
+e2e-open:
+	E2E_ARTIFACTS_DIR="$(abspath $(E2E_ARTIFACTS_DIR))" node scripts/e2e-report.mjs open
 
 logs:
 	docker --context "$(DOCKER_CONTEXT)" compose logs -f catalog
